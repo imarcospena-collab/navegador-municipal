@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navegador Municipal RD</title>
+<meta name="description" content="Datos abiertos y verificables sobre los ayuntamientos y distritos municipales dominicanos: resultados electorales, gestión (SISMAP) y finanzas. Piloto en las cinco provincias más pobladas.">
+<meta property="og:title" content="Navegador Municipal RD">
+<meta property="og:description" content="Quién gobierna, por cuánto ganó, cómo gestiona y de dónde sale su dinero: 66 gobiernos locales con datos oficiales.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_DO">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0B1624">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+<style>
+/* Plan: atlas cívico. Banda oscura "tinta de mapa" arriba con el atlas de 66 casillas; debajo, paneles claros de lectura densa. Una sola familia (Archivo) jugando con el ancho: expandida para titulares, normal para texto, estrecha para etiquetas. */
+:root {
+  --ink: #0E1A2B; --paper: #F3F5F8; --surface: #FFFFFF; --surface2: #EEF2F6; --line: #D6DDE6;
+  --text: #121B28; --text2: #4D5B6E; --muted: #6B788A;
+  --night: #0B1624; --night2: #13233A; --night-line: #23395A; --night-text: #E8EEF6; --night-muted: #93A6C0;
+  --accent: #F2B33D; --link: #1E5BB0;
+  --good: #1B7F4B; --warn: #B4690E; --bad: #B3261E;
+  --seq1: #E3EEF7; --seq2: #B9D3EA; --seq3: #86B1D9; --seq4: #4F86C0; --seq5: #24599A; --seq6: #123A6B;
+  --display: 'Archivo', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D141E; --surface: #141E2B; --surface2: #1A2636; --line: #273649;
+  --text: #E6ECF3; --text2: #B3C0D0; --muted: #8E9DB1; --link: #7FB2F0;
+  --good: #4CC285; --warn: #E8A94B; --bad: #F07167;
+  --seq1: #1B2B3D; --seq2: #23466A; --seq3: #2F6398; --seq4: #4A86C4; --seq5: #77AAE0; --seq6: #B5D3F3;
+  color-scheme: dark;
+}}
+:root[data-theme="dark"] {
+  --paper: #0D141E; --surface: #141E2B; --surface2: #1A2636; --line: #273649;
+  --text: #E6ECF3; --text2: #B3C0D0; --muted: #8E9DB1; --link: #7FB2F0;
+  --good: #4CC285; --warn: #E8A94B; --bad: #F07167;
+  --seq1: #1B2B3D; --seq2: #23466A; --seq3: #2F6398; --seq4: #4A86C4; --seq5: #77AAE0; --seq6: #B5D3F3;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--text); font: 400 15px/1.55 var(--body); font-stretch: 100%; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+h1, h2, h3 { margin: 0; font-family: var(--display); text-wrap: balance; }
+.eyebrow { font: 600 12px/1 var(--body); font-stretch: 85%; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.banner { background: var(--accent); color: #1B1405; font-size: 13px; font-weight: 600; }
+.banner .wrap { display: flex; gap: 12px; align-items: center; padding-top: 7px; padding-bottom: 7px; flex-wrap: wrap; }
+.banner b { font-stretch: 112%; letter-spacing: .02em; }
+.banner span.sep { opacity: .5; }
+nav.top { background: var(--night); color: var(--night-text); border-bottom: 1px solid var(--night-line); position: sticky; top: 0; z-index: 20; }
+nav.top .wrap { display: flex; align-items: center; gap: 22px; height: 60px; }
+.logo { display: flex; align-items: center; gap: 10px; color: var(--night-text); text-decoration: none; }
+.logo svg { flex: none; }
+.logo b { font: 800 19px/1 var(--display); font-stretch: 118%; letter-spacing: -.01em; }
+.logo small { display: block; font: 500 10.5px/1.2 var(--body); font-stretch: 85%; letter-spacing: .14em; text-transform: uppercase; color: var(--night-muted); margin-top: 3px; }
+.navlinks { display: flex; gap: 4px; margin-left: 8px; }
+.navlinks button { background: none; border: 0; color: var(--night-muted); font: 600 14px var(--body); padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.navlinks button:hover { color: var(--night-text); background: var(--night2); }
+.navright { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.kbtn { display: flex; align-items: center; gap: 10px; background: var(--night2); border: 1px solid var(--night-line); color: var(--night-muted); font: 500 14px var(--body); padding: 8px 10px 8px 12px; border-radius: 8px; cursor: pointer; min-width: 240px; }
+.kbtn kbd { margin-left: auto; font: 600 11px var(--body); border: 1px solid var(--night-line); border-radius: 4px; padding: 1px 6px; color: var(--night-muted); }
+.ibtn { background: var(--night2); border: 1px solid var(--night-line); color: var(--night-text); width: 38px; height: 38px; border-radius: 8px; cursor: pointer; display: grid; place-items: center; }
+@media (max-width: 860px) { .navlinks { display: none; } .kbtn { min-width: 0; } .kbtn span.t { display: none; } }
+.hero { background: radial-gradient(1200px 500px at 85% -10%, #1C3456 0%, transparent 60%), var(--night); color: var(--night-text); padding: 46px 0 40px; }
+.hero .wrap { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; align-items: start; }
+@media (max-width: 980px) { .hero .wrap { grid-template-columns: 1fr; } }
+.hero h1 { font-weight: 800; font-stretch: 122%; font-size: clamp(36px, 5.2vw, 62px); line-height: .98; letter-spacing: -.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero p.lede { color: var(--night-muted); font-size: 17px; max-width: 46ch; margin: 18px 0 0; }
+.hero .eyebrow { color: var(--accent); margin-bottom: 14px; }
+.herostats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--night-line); border: 1px solid var(--night-line); border-radius: 10px; overflow: hidden; margin-top: 28px; }
+.herostats div { background: var(--night); padding: 14px 16px; }
+.herostats .v { font: 800 30px/1.05 var(--display); font-stretch: 115%; }
+.herostats .k { font-size: 12.5px; color: var(--night-muted); margin-top: 4px; }
+.atlas-card { background: rgba(19, 35, 58, .7); border: 1px solid var(--night-line); border-radius: 14px; padding: 18px; }
+.atlas-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.atlas-head h2 { font-size: 18px; font-weight: 700; font-stretch: 110%; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--night); border: 1px solid var(--night-line); border-radius: 8px; padding: 3px; }
+.seg button { border: 0; background: none; color: var(--night-muted); font: 600 12.5px var(--body); font-stretch: 92%; padding: 6px 9px; border-radius: 5px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--night-text); color: var(--night); }
+.atlas { display: grid; gap: 14px; }
+.prov { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: start; }
+.prov .pl { font: 700 12px/1.25 var(--body); font-stretch: 88%; text-transform: uppercase; letter-spacing: .08em; color: var(--night-muted); padding-top: 6px; }
+.prov .pl span { display: block; font-weight: 500; letter-spacing: .02em; text-transform: none; font-size: 12px; margin-top: 2px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+.tile { width: 44px; height: 44px; border-radius: 6px; display: grid; place-items: center; font: 700 11px/1 var(--body); font-stretch: 80%; letter-spacing: .02em; color: #fff; cursor: pointer; border: 0; position: relative; padding: 0; text-decoration: none; transition: transform .12s ease; }
+.tile.dm { width: 32px; height: 32px; margin-top: 6px; font-size: 9.5px; border-radius: 5px; }
+.tile:hover, .tile:focus-visible { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--night-text); z-index: 2; }
+.tile.dark-text { color: #0B1624; }
+.tile.here { box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px rgba(242,179,61,.35); }
+.mun-group { display: flex; gap: 2px; padding-right: 6px; margin-right: 2px; border-right: 1px dashed var(--night-line); }
+.mun-group:last-child { border-right: 0; }
+.atlas-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; font-size: 12.5px; color: var(--night-muted); align-items: center; }
+.atlas-legend .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: -2px; margin-right: 6px; }
+.ramp { display: flex; align-items: center; gap: 8px; }
+.ramp i { width: 22px; height: 10px; display: inline-block; }
+.atlas-note { font-size: 12px; color: var(--night-muted); margin-top: 8px; }
+section.block { padding: 42px 0 8px; }
+.bhead { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.bhead h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; font-stretch: 115%; letter-spacing: -.01em; line-height: 1.05; }
+.bhead p { color: var(--text2); margin: 6px 0 0; max-width: 62ch; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.grid { display: grid; gap: 18px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.g5 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--text2); font: 500 12px var(--body); }
+.chart .lab { fill: var(--text); font-weight: 600; }
+.chart .grid line { stroke: var(--line); }
+.chart .axis { fill: var(--muted); font-size: 11.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.pcard { display: grid; gap: 10px; text-decoration: none; color: var(--text); transition: border-color .15s; }
+.pcard:hover { border-color: var(--link); }
+.pcard h3 { font-size: 20px; font-weight: 800; font-stretch: 112%; }
+.pcard .row { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--text2); }
+.pcard .row b { color: var(--text); font-weight: 600; }
+.stack { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; background: var(--surface); }
+.stack i { display: block; height: 100%; }
+.stack i:first-child { border-radius: 5px 0 0 5px; } .stack i:last-child { border-radius: 0 5px 5px 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 7px; border-radius: 999px; font: 600 12.5px/1.6 var(--body); font-stretch: 95%; background: var(--surface2); border: 1px solid var(--line); white-space: nowrap; color: var(--text); text-decoration: none; }
+.chip .d { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.tag { font: 700 11px/1 var(--body); font-stretch: 88%; text-transform: uppercase; letter-spacing: .1em; padding: 5px 8px; border-radius: 5px; border: 1px solid currentColor; display: inline-block; }
+.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.cmp .side { padding: 18px 20px; display: grid; gap: 12px; align-content: start; }
+.cmp .side + .side { border-left: 1px solid var(--line); }
+.cmp select { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); color: var(--text); font: 600 15px var(--body); }
+.cmp dl { display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; margin: 0; font-size: 14px; }
+.cmp dt { color: var(--text2); } .cmp dd { margin: 0; text-align: right; font-weight: 600; }
+.cmp dd.win { color: var(--good); }
+@media (max-width: 640px) { .cmp { grid-template-columns: 1fr; } .cmp .side + .side { border-left: 0; border-top: 1px solid var(--line); } }
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+.filters label { display: grid; gap: 4px; }
+.filters select, .filters input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); font: 500 14px var(--body); }
+.filters .count { margin-left: auto; font-size: 13px; color: var(--muted); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 14px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+th { background: var(--surface2); font: 700 11.5px var(--body); font-stretch: 88%; letter-spacing: .08em; text-transform: uppercase; color: var(--text2); cursor: pointer; white-space: nowrap; user-select: none; }
+th[aria-sort="ascending"]::after { content: " ↑"; } th[aria-sort="descending"]::after { content: " ↓"; }
+td.r, th.r { text-align: right; }
+tbody tr:hover { background: var(--surface2); }
+tbody tr:last-child td { border-bottom: 0; }
+td a { color: var(--text); font-weight: 650; text-decoration: none; }
+td a:hover { color: var(--link); text-decoration: underline; }
+.meter { width: 64px; height: 6px; border-radius: 3px; background: var(--surface2); display: inline-block; vertical-align: middle; margin-left: 8px; overflow: hidden; }
+.meter i { display: block; height: 100%; border-radius: 3px; background: var(--seq4); }
+.tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.tools a, .tools button { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; color: var(--text); text-decoration: none; font: inherit; cursor: pointer; display: grid; gap: 4px; }
+.tools a:hover, .tools button:hover { border-color: var(--link); }
+.tools b { font-size: 16px; font-stretch: 108%; }
+.tools span { color: var(--text2); font-size: 13.5px; }
+footer { background: var(--night); color: var(--night-muted); margin-top: 56px; padding: 40px 0 30px; font-size: 13.5px; }
+footer .wrap { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 30px; }
+footer b { color: var(--night-text); display: block; margin-bottom: 8px; font-stretch: 108%; }
+footer p { margin: 0 0 8px; max-width: 60ch; }
+footer button.fl { background: none; border: 0; color: var(--night-muted); font: inherit; padding: 2px 0; cursor: pointer; display: block; text-align: left; }
+footer button.fl:hover { color: var(--night-text); }
+@media (max-width: 760px) { footer .wrap { grid-template-columns: 1fr; } }
+.mpage { max-width: 860px; margin-left: auto; margin-right: auto; } .mpage > section { max-width: 820px; } .deftbl { table-layout: fixed; max-width: 820px; }
+.mpage section.block, #p-personas { scroll-margin-top: 72px; }
+.asp { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; border-top: 1px solid var(--line); padding: 10px 0; }
+.asp .st { font-size: 12.5px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; align-self: start; }
+.asp .src { display: block; font-size: 12.5px; color: var(--text2); grid-column: 1 / -1; border: 0; padding: 0; }
+.mpage h3 { font-size: 19px; font-weight: 750; font-stretch: 108%; margin: 26px 0 8px; }
+.mpage p, .mpage li { color: var(--text); font-size: 15.5px; line-height: 1.6; }
+.mpage ul { padding-left: 20px; margin: 8px 0; } .mpage li { margin: 4px 0; }
+.mpage .muted { color: var(--text2); font-size: 14px; }
+.srcs { display: grid; gap: 12px; }
+.src { display: grid; grid-template-columns: 170px 1fr; gap: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.src b { font-size: 14.5px; } .src .who { font-size: 12.5px; color: var(--text2); margin-top: 2px; }
+.src p { margin: 0; font-size: 14.5px; }
+@media (max-width: 640px) { .src { grid-template-columns: 1fr; gap: 4px; } }
+.deftbl { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.deftbl td { border-top: 1px solid var(--line); padding: 10px 10px 10px 0; vertical-align: top; }
+.deftbl td:first-child { font-weight: 650; width: 190px; }
+.codes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.codes .pv { font-weight: 750; display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-bottom: 6px; }
+.codes .r { display: flex; justify-content: space-between; font-size: 13.5px; padding: 2px 0; }
+.codes .r.dm { padding-left: 14px; color: var(--text2); }
+.codes code, .pills code { font: 700 12.5px var(--body); letter-spacing: .04em; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pills span { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px 4px 8px; font-size: 13px; }
+.pills i { width: 10px; height: 10px; border-radius: 50%; }
+.status { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13.5px; }
+.status span { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; background: var(--surface); }
+.toc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 18px; }
+.toc a { color: var(--night-text); text-decoration: none; border: 1px solid var(--night-line); border-radius: 999px; padding: 5px 12px; font-size: 13.5px; }
+.toc a:hover { border-color: var(--accent); }
+/* Ficha */
+.phero { background: radial-gradient(900px 400px at 90% -20%, #1C3456 0%, transparent 60%), var(--night); color: var(--night-text); padding: 30px 0 0; }
+.crumbs { font-size: 13.5px; color: var(--night-muted); }
+.crumbs button { background: none; border: 0; color: var(--accent); font: inherit; padding: 0; cursor: pointer; }
+.ptitle { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; margin-top: 12px; }
+@media (max-width: 860px) { .ptitle { grid-template-columns: 1fr; } }
+.ptitle h1 { font-size: clamp(36px, 5.5vw, 64px); font-weight: 800; font-stretch: 120%; line-height: .95; letter-spacing: -.02em; }
+.ptitle .who { margin-top: 12px; color: var(--night-muted); font-size: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.ptitle .who b { color: var(--night-text); }
+.mapwrap svg { display: block; width: 100%; height: auto; }
+.mapwrap .ctry { fill: #1A2B42; stroke: none; }
+.mapwrap path { vector-effect: non-scaling-stroke; }
+.mapwrap .unit { stroke: var(--night); stroke-width: .9; stroke-linejoin: round; cursor: pointer; transition: opacity .12s; }
+.mapwrap .unit:hover, .mapwrap .unit:focus { stroke: var(--night-text); stroke-width: 2; outline: none; }
+.mapwrap .unit.here { stroke: var(--accent); stroke-width: 2.6; }
+.mapwrap .provl { fill: none; stroke: var(--night-text); stroke-opacity: .55; stroke-width: 1.4; pointer-events: none; }
+.mapwrap .plab { fill: var(--night-muted); font: 700 11px var(--body); letter-spacing: .08em; text-transform: uppercase; pointer-events: none; paint-order: stroke; stroke: var(--night); stroke-width: 3px; }
+.mapwrap .ulab { fill: var(--night-text); font: 650 17px var(--body); pointer-events: none; paint-order: stroke; stroke: rgba(11,22,36,.85); stroke-width: 4px; }
+.mapwrap .ibox { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.mapgrid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 14px; margin-top: 10px; align-items: start; }
+@media (max-width: 620px) { .mapgrid { grid-template-columns: 1fr; } }
+.mapgrid .cap { font: 600 11.5px var(--body); color: var(--night-muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+.inset { border: 1px solid var(--night-line); border-radius: 10px; padding: 8px; background: var(--night); }
+.nopoly { font-size: 12.5px; color: var(--night-muted); }
+.nopoly a { display: flex; align-items: center; gap: 8px; color: var(--night-text); text-decoration: none; padding: 4px 0; }
+.nopoly a i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.nopoly a span { color: var(--night-muted); display: block; font-size: 11.5px; }
+.nopoly a { align-items: flex-start; } .nopoly a i { margin-top: 3px; }
+.minimap { width: 330px; max-width: 100%; }
+.minimap .unit { opacity: .4; cursor: pointer; }
+.minimap .unit.here { opacity: 1; }
+.minimap .unit.par { opacity: 1; stroke: var(--accent); stroke-dasharray: 3 2; stroke-width: 2; }
+.viewseg { margin-left: auto; }
+.mini-atlas { display: flex; flex-wrap: wrap; gap: 3px; max-width: 330px; }
+.mini-atlas a { width: 14px; height: 14px; border-radius: 3px; display: block; opacity: .55; }
+.mini-atlas a.here { opacity: 1; box-shadow: 0 0 0 2px var(--accent); }
+.pstats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 26px; border-top: 1px solid var(--night-line); }
+.pstats div { padding: 16px 16px 18px 0; }
+.pstats div + div { padding-left: 16px; border-left: 1px solid var(--night-line); }
+.pstats .v { font: 800 28px/1.05 var(--display); font-stretch: 112%; }
+.pstats .k { font-size: 12px; color: var(--night-muted); margin-top: 4px; }
+@media (max-width: 860px) { .pstats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pstats div { border-left: 0 !important; padding-left: 0 !important; } }
+.ptabs { position: sticky; top: 60px; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); }
+.ptabs .wrap { display: flex; gap: 2px; overflow-x: auto; }
+.ptabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 14px 12px 11px; font: 650 14px var(--body); color: var(--text2); cursor: pointer; white-space: nowrap; }
+.ptabs button:hover { color: var(--text); border-bottom-color: var(--line); }
+.note { border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 10px 10px 0; padding: 12px 16px; font-size: 14.5px; margin-top: 24px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.yearrow { display: grid; grid-template-columns: 64px 1fr 110px; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.yearrow:last-child { border-bottom: 0; }
+.yearrow .y { font: 800 22px var(--display); font-stretch: 112%; }
+.yearrow .meta { font-size: 13px; color: var(--text2); text-align: right; }
+.hbar { display: grid; gap: 6px; }
+.hbar .ln { display: grid; grid-template-columns: 130px 1fr 58px; gap: 10px; align-items: center; font-size: 13.5px; }
+.hbar .ln .bk { height: 14px; background: var(--surface2); border-radius: 0 4px 4px 0; overflow: hidden; }
+.hbar .ln .bk i { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.kpi { font: 800 44px/1 var(--display); font-stretch: 112%; }
+.kpi-sub { color: var(--text2); font-size: 14px; margin-top: 6px; }
+.bench { position: relative; height: 34px; margin-top: 16px; }
+.bench .track { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--surface2); }
+.bench .mk { position: absolute; top: 6px; width: 3px; height: 22px; border-radius: 2px; background: var(--text); transform: translateX(-1px); }
+.bench .md { position: absolute; top: 9px; width: 2px; height: 16px; background: var(--muted); }
+.bench .lbl { position: absolute; top: 28px; font-size: 11.5px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; margin: 14px 0 0; font-size: 14px; }
+.dl dt { color: var(--text2); } .dl dd { margin: 0; text-align: right; font-weight: 600; }
+/* Paleta de comandos y tooltip */
+.palette-bg { position: fixed; inset: 0; background: rgba(5, 10, 18, .55); z-index: 50; display: grid; place-items: start center; padding-top: 12vh; }
+.palette { width: min(620px, 92vw); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,.35); overflow: hidden; }
+.palette input { width: 100%; border: 0; border-bottom: 1px solid var(--line); padding: 16px 18px; font: 500 17px var(--body); background: var(--surface); color: var(--text); outline: none; }
+.palette ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow: auto; }
+.palette li button { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: none; color: var(--text); font: 500 15px var(--body); padding: 10px 12px; border-radius: 8px; cursor: pointer; text-align: left; }
+.palette li button span.m { margin-left: auto; color: var(--muted); font-size: 13px; }
+.palette li button.on { background: var(--surface2); }
+.palette .hint { font-size: 12px; color: var(--muted); padding: 8px 14px; border-top: 1px solid var(--line); }
+#tip { position: fixed; z-index: 60; pointer-events: none; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; box-shadow: 0 10px 30px rgba(0,0,0,.2); max-width: 260px; display: none; }
+#tip b { display: block; font-size: 14.5px; font-stretch: 108%; margin-bottom: 4px; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; color: var(--text2); }
+#tip .r span:last-child { color: var(--text); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
+</style>
+</head>
+<body>
+<div class="banner"><div class="wrap"><b>Elecciones municipales 2028</b><span class="sep">·</span><span>La Victoria y La Caleta eligen su primer alcalde</span><span class="sep">·</span><span>Datos al 18 de noviembre de 2026</span></div></div>
+<nav class="top" aria-label="Principal"><div class="wrap">
+  <a class="logo" href="#inicio" aria-label="Navegador Municipal, inicio">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15.5" fill="none" stroke="#F2B33D" stroke-width="2"/><path d="M17 5 L21 17 L17 29 L13 17 Z" fill="#F2B33D"/><path d="M17 17 L21 17 L17 29 Z" fill="#0B1624" opacity=".45"/><circle cx="17" cy="17" r="2" fill="#0B1624"/></svg>
+    <span><b>Navegador Municipal</b><small>Gobiernos locales · RD</small></span>
+  </a>
+  <div class="navlinks">
+    <button data-go="atlas">Atlas</button><button data-go="renidas">Contiendas</button><button data-go="gestion">Gestión y finanzas</button><button data-go="comparar">Comparar</button><button data-go="tabla">Todos</button><button onclick="location.hash='metodologia'">Fuentes</button>
+  </div>
+  <div class="navright">
+    <button class="kbtn" id="openPal" aria-label="Buscar (Ctrl+K)"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="t">Buscar municipio o distrito</span><kbd>⌘K</kbd></button>
+    <button class="ibtn" id="theme" aria-label="Cambiar tema claro u oscuro"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm0 1.6v9.8a4.9 4.9 0 0 1 0-9.8Z" fill="currentColor"/></svg></button>
+  </div>
+</div></nav>
+<main id="app"></main>
+<footer><div class="wrap">
+  <div><b>Navegador Municipal</b><p>Datos abiertos y verificables sobre los gobiernos locales de la República Dominicana. Piloto: Distrito Nacional, Santo Domingo, Santiago, San Cristóbal y La Altagracia.</p><p>No apoya a ningún partido, candidato ni aspirante.</p></div>
+  <div><b>Explorar</b><button class="fl" data-go="atlas">Atlas</button><button class="fl" data-go="renidas">Contiendas reñidas</button><button class="fl" data-go="gestion">Gestión y finanzas</button><button class="fl" data-go="comparar">Comparar</button><button class="fl" data-go="tabla">Todos los gobiernos</button></div>
+  <div><b>Fuentes</b><p>JCE: boletines definitivos 2016, 2020, 2024 y escaños. ONE (vía FEDOMU): censos 2010 y 2022, superficie. MAP: SISMAP Municipal. DIGEPRES: presupuesto 2026 y ejecución 2025.</p><button class="fl" onclick="location.hash='metodologia'" style="color:var(--accent)">Metodología y fuentes →</button></div>
+</div></footer>
+<div id="tip" role="tooltip"></div>
+<script id="data" type="application/json">__DATA__</script>
+<script id="geo" type="application/json">__GEO__</script>
+<script id="asp" type="application/json">__ASP__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const byId = Object.fromEntries(D.map(d => [d.id, d]));
+const PROVS = ['Distrito Nacional', 'Santo Domingo', 'Santiago', 'San Cristóbal', 'La Altagracia'];
+const isDark = () => document.documentElement.dataset.theme === 'dark' || (!document.documentElement.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+const PCL = { PRM:'#1E4FA8', PLD:'#A65BC9', FP:'#2E8B3A', JS:'#D45FB5', PRSC:'#D4272F', PLR:'#E07A00', PPG:'#0A9A94', PCR:'#B8860B', PRD:'#4AA3D8', APD:'#9C5B2E', MIUP:'#7E8C3A', BIS:'#5878A6', DXC:'#139CB5', ALPAIS:'#C26A1B', PP:'#8A6D4F', PUN:'#6B7A8F', PDI:'#6B7A8F' };
+const PCD = { PRM:'#3463C6', PLD:'#B474D6', FP:'#3FA34D', JS:'#B04FA8', PRSC:'#D9363A', PLR:'#BC7A0E', PPG:'#12998F', PCR:'#A07A1A', PRD:'#58AEE0', APD:'#B06E3E', MIUP:'#8F9D48', BIS:'#6E8CBA', DXC:'#26ACC4', ALPAIS:'#C97A30', PP:'#9A7E60', PUN:'#7D8CA0', PDI:'#7D8CA0' };
+const head = s => (s || '').split(' ')[0];
+const pc = s => (isDark() ? PCD : PCL)[head(s)] || (isDark() ? '#7D8CA0' : '#6B7A8F');
+const nf = n => n == null ? '—' : Math.round(n).toLocaleString('en-US');
+const pf = (x, d = 1) => x == null ? '—' : (x * 100).toFixed(d) + '%';
+const pts = x => x == null ? '—' : (x * 100).toFixed(1) + ' pts';
+const rdm = n => n == null ? '—' : n >= 1e9 ? 'RD$' + (n / 1e9).toFixed(2) + ' mil M' : 'RD$' + (n / 1e6).toFixed(1) + ' M';
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const own = d => d.b26 ? d.b26.own / d.b26.total : null;
+const perCap = d => d.b26 ? d.b26.total / (d.pop22x || d.pop22) : null;
+const abbr = n => { const m = { 'Distrito Nacional':'DN', 'Santo Domingo Este':'SDE', 'Santo Domingo Norte':'SDN', 'Santo Domingo Oeste':'SDO', 'Santiago de los Caballeros':'STI', 'Santiago Oeste':'STO', 'San Antonio de Guerra':'SAG', 'San José de las Matas':'SJM', 'San Cristóbal':'SC', 'Bajos de Haina':'BHA', 'San Rafael del Yuma':'SRY', 'Villa Bisonó (Navarrete)':'NAV', 'San Gregorio de Nigua':'NIG', 'Sabana Grande de Palenque':'PAL', 'Cambita Garabitos':'CAM', 'Cambita El Pueblecito':'CEP', 'Verón-Punta Cana':'VPC', 'Las Lagunas de Nisibón':'NIS', 'San Francisco de Jacagua':'JAC', 'San José del Puerto':'SJP', 'Palmarejo-Villa Linda':'PVL', 'Los Alcarrizos':'ALC', 'Los Cacaos':'CAC', 'Licey al Medio':'LIC', 'Canca La Piedra':'CLP', 'Hato del Yaque':'HDY', 'Hato Viejo':'HVI', 'Hato Damas':'HDA', 'Villa González':'VGO', 'Villa Altagracia':'VAL', 'Palmar Arriba':'PAR', 'Las Placetas':'PLA', 'Las Palomas':'LPA', 'Sabana Iglesia':'SIG', 'La Otra Banda':'LOB', 'Boca de Yuma':'BDY', 'Boca Chica':'BCH', 'Pedro García':'PGA', 'Pedro Brand':'PBR', 'La Victoria':'LVI', 'La Caleta':'LCA', 'La Cuaba':'LCU', 'La Cuesta':'LCT', 'La Canela':'LCN', 'La Cuchilla':'LCH', 'La Guáyiga':'GUA', 'El Carril':'CAR', 'El Caimito':'CAI', 'El Limón':'LIM', 'El Rubio':'RUB', 'Quita Sueño':'QSU', 'Doña Ana':'DAN', 'San Luis':'SLU', 'Higüey':'HIG', 'Bayahíbe':'BAY', 'Yaguate':'YAG', 'Tamboril':'TAM', 'Puñal':'PUÑ', 'Canabacoa':'CNB', 'Guayabal':'GYB', 'Jánico':'JAN', 'Juncalito':'JUN', 'Baitoa':'BAI', 'Hatillo':'HAT', 'Medina':'MED', 'Pantoja':'PAN' }; return m[n] || n.slice(0, 3).toUpperCase(); };
+const median = a => { const s = a.filter(x => x != null).sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const app = document.getElementById('app'), tip = document.getElementById('tip');
+
+/* ---------- Tooltip ---------- */
+function showTip(e, html) { tip.innerHTML = html; tip.style.display = 'block'; moveTip(e); }
+function moveTip(e) { const w = tip.offsetWidth, h = tip.offsetHeight; let x = e.clientX + 14, y = e.clientY + 14; if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y + h > innerHeight - 8) y = e.clientY - h - 14; tip.style.left = x + 'px'; tip.style.top = y + 'px'; }
+function hideTip() { tip.style.display = 'none'; }
+const tipFor = d => `<b>${esc(d.name)}</b><div class="r"><span>${d.type === 'DM' ? 'Distrito municipal' : 'Municipio'}</span><span>${esc(d.prov)}</span></div>
+  <div class="r"><span>Ganador 2024</span><span>${esc(d.r24.w)}</span></div><div class="r"><span>Margen</span><span>${pts(d.r24.m)}</span></div>
+  <div class="r"><span>Población 2022</span><span>${nf(d.pop)}</span></div><div class="r"><span>SISMAP</span><span>${pf(d.sismap)}</span></div><div class="r"><span>Ingresos propios</span><span>${pf(own(d))}</span></div>`;
+function bindTips(root) {
+  root.querySelectorAll('[data-tip]').forEach(el => {
+    const d = byId[el.dataset.tip];
+    el.addEventListener('mouseenter', e => showTip(e, tipFor(d)));
+    el.addEventListener('mousemove', moveTip);
+    el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); showTip({ clientX: r.right, clientY: r.bottom }, tipFor(d)); });
+    el.addEventListener('blur', hideTip);
+  });
+}
+
+/* ---------- Atlas ---------- */
+const MODES = {
+  win: { label: 'Ganador 2024' },
+  margin: { label: 'Margen 2024', get: d => d.r24.m, dom: [0, .5], fmt: pts, lo: 'Reñida', hi: 'Holgada' },
+  sismap: { label: 'SISMAP', get: d => d.sismap, dom: [.1, .85], fmt: pf, lo: 'Baja', hi: 'Alta' },
+  own: { label: 'Ingresos propios', get: own, dom: [0, .6], fmt: pf, lo: 'Dependiente', hi: 'Autónomo' },
+  turnout: { label: 'Participación', get: d => d.r24.to, dom: [.3, .8], fmt: pf, lo: 'Baja', hi: 'Alta' },
+};
+let atlasMode = 'win';
+function seqColor(v, [a, b]) {
+  if (v == null) return 'var(--night-line)';
+  const t = Math.max(0, Math.min(.999, (v - a) / (b - a)));
+  return `var(--seq${1 + Math.floor(t * 6)})`;
+}
+function tileColor(d) { return atlasMode === 'win' ? pc(d.r24.w) : seqColor(MODES[atlasMode].get(d), MODES[atlasMode].dom); }
+function tileDarkText(d) { if (atlasMode === 'win') return false; const v = MODES[atlasMode].get(d); if (v == null) return false; const [a, b] = MODES[atlasMode].dom; const t = (v - a) / (b - a); return isDark() ? t > .66 : t < .34; }
+function atlasHTML(here) {
+  return PROVS.map(p => {
+    const muns = D.filter(d => d.prov === p && d.type === 'Municipio');
+    const popP = muns.reduce((a, d) => a + d.pop, 0);
+    const groups = muns.map(m => {
+      const kids = D.filter(k => k.parent === m.name);
+      return `<div class="mun-group">${[m, ...kids].map(d => `<a class="tile ${d.type === 'DM' ? 'dm' : ''} ${tileDarkText(d) ? 'dark-text' : ''} ${here === d.id ? 'here' : ''}" href="#${d.id}" data-tip="${d.id}" style="background:${tileColor(d)}" aria-label="${esc(d.name)}">${abbr(d.name)}</a>`).join('')}</div>`;
+    }).join('');
+    return `<div class="prov"><div class="pl">${p}<span>${(popP / 1e6).toFixed(2)} M hab.</span></div><div class="tiles">${groups}</div></div>`;
+  }).join('');
+}
+function atlasLegend() {
+  if (atlasMode === 'win') {
+    const c = {}; D.forEach(d => { const h = head(d.r24.w); c[h] = (c[h] || 0) + 1; });
+    return Object.entries(c).sort((a, b) => b[1] - a[1]).map(([p, n]) => `<span><i class="sw" style="background:${pc(p)}"></i>${p} y aliados <b class="num" style="color:var(--night-text)">${n}</b></span>`).join('');
+  }
+  const m = MODES[atlasMode];
+  return `<span class="ramp">${m.lo} ${[1,2,3,4,5,6].map(i => `<i style="background:var(--seq${i})"></i>`).join('')} ${m.hi}</span><span>${m.fmt(m.dom[0])} – ${m.fmt(m.dom[1])}${atlasMode === 'own' ? ' · presupuesto 2026' : ''}</span>`;
+}
+function drawAtlas() {
+  const el = document.getElementById('atlas'); if (!el) return;
+  el.innerHTML = atlasView === 'map' ? mapHTML() : atlasHTML();
+  if (atlasView === 'map') bindMap(el); else bindTips(el);
+  const note = document.getElementById('atlasNote');
+  if (note) note.textContent = atlasView === 'map' ? 'Límites: ONE / HDX (COD-AB). Pase el cursor para ver datos; pulse para abrir la ficha. La Victoria y La Caleta ya son municipios.' : 'Casillas grandes: ayuntamientos. Pequeñas: sus distritos municipales, a la derecha de cada uno. Pulse una para abrir su ficha.';
+  document.querySelectorAll('#atlasView button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === atlasView));
+  document.getElementById('atlasLegend').innerHTML = atlasLegend();
+  document.querySelectorAll('#atlasModes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === atlasMode));
+}
+
+
+/* ---------- Mapa ---------- */
+const GEO = JSON.parse(document.getElementById('geo').textContent);
+const ASP = JSON.parse(document.getElementById('asp').textContent);
+const NOPOLY = D.filter(d => !GEO.main.units[d.id]).map(d => d.id);
+const GSD = new Set(Object.keys(GEO.inset.units));
+let atlasView = 'map';
+function pathBox(p) { const n = p.match(/-?\d+\.?\d*/g).map(Number); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (let i = 0; i < n.length; i += 2) { x0 = Math.min(x0, n[i]); x1 = Math.max(x1, n[i]); y0 = Math.min(y0, n[i + 1]); y1 = Math.max(y1, n[i + 1]); } return [x0, y0, x1, y1]; }
+function mapSVG({ which = 'main', here = null, cls = '', labels = false, par = null, color = tileColor, zoomProv = null } = {}) {
+  const g = GEO[which];
+  let vb = which === 'main' ? GEO.main.vb.join(' ') : `0 0 ${g.W} ${g.H}`;
+  if (zoomProv) { const pk = Object.keys(GEO.main.prov).find(k => k.endsWith(zoomProv)); if (pk) { let [x0, y0, x1, y1] = pathBox(GEO.main.prov[pk]); const w = x1 - x0, h = y1 - y0, W = Math.max(w, h * 1.6) * 1.12, H = W / 1.6; vb = `${(x0 + x1 - W) / 2} ${(y0 + y1 - H) / 2} ${W} ${H}`; } }
+  const units = Object.entries(g.units).map(([id, p]) => { const d = byId[id];
+    return `<path class="unit ${id === here ? 'here' : ''} ${id === par ? 'par' : ''}" d="${p}" fill="${color(d)}" data-tip="${id}" data-go="${id}" tabindex="0" role="link" aria-label="${esc(d.name)}"></path>`; }).join('');
+  const hereP = here && g.units[here] ? `<path class="unit here" d="${g.units[here]}" fill="${color(byId[here])}" data-tip="${here}" data-go="${here}" style="pointer-events:none"></path>` : '';
+  let extra = '';
+  if (which === 'main') {
+    extra = Object.values(GEO.main.prov).map(p => `<path class="provl" d="${p}"></path>`).join('');
+    if (labels) extra += Object.entries(GEO.main.provlab).filter(([n]) => !/Santo Domingo|Nacional/.test(n)).map(([n, [x, y]]) => { const sc = /Crist/.test(n); return `<text class="plab" x="${sc ? x - 22 : x}" y="${sc ? y + 40 : y}" text-anchor="${sc ? 'end' : 'middle'}">${n.replace('Provincia ', '')}</text>`; }).join('');
+    if (labels) { const [x0, y0, x1, y1] = GEO.main.box || GEO.inset.box; extra += `<rect class="ibox" x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}" rx="3"></rect>`; }
+  } else if (labels) {
+    extra = Object.entries(GEO.inset.lab).map(([id, [x, y]]) => `<text class="ulab" x="${x}" y="${y + 3}" text-anchor="middle">${abbr(byId[id].name)}</text>`).join('');
+  }
+  const ctx = which === 'main' ? GEO.main.country : GEO.inset.ctx;
+  return `<svg viewBox="${vb}" class="${cls}" role="img" aria-label="Mapa de gobiernos locales"><path class="ctry" d="${ctx}"></path>${units}${extra}${hereP}</svg>`;
+}
+function bindMap(root) {
+  bindTips(root);
+  root.querySelectorAll('[data-go]').forEach(el => {
+    el.addEventListener('click', () => { hideTip(); location.hash = el.dataset.go; });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { hideTip(); location.hash = el.dataset.go; } });
+  });
+}
+function mapHTML() {
+  const np = NOPOLY.map(id => { const d = byId[id]; return `<a href="#${id}" data-tip="${id}"><i style="background:${tileColor(d)}"></i><div>${esc(d.name)}<span>dentro de ${esc(d.parent || d.prov)}</span></div></a>`; }).join('');
+  return `<div class="mapwrap">${mapSVG({ labels: true })}</div>
+  <div class="mapgrid">
+    <div><div class="cap">Gran Santo Domingo, ampliado</div><div class="inset mapwrap">${mapSVG({ which: 'inset', labels: true })}</div></div>
+    <div class="nopoly"><div class="cap">Sin polígono propio</div>El mapa oficial aún no separa estos distritos de su municipio:${np}</div>
+  </div>`;
+}
+
+/* ---------- Charts ---------- */
+function closestChart() {
+  const list = [...D].sort((a, b) => a.r24.m - b.r24.m).slice(0, 12);
+  const W = 640, row = 32, top = 26, left = 190, right = 84, H = top + list.length * row + 10, maxM = Math.ceil(list[list.length - 1].r24.m * 100) / 100;
+  const x = v => left + (v / maxM) * (W - left - right);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Las 12 contiendas más reñidas de 2024 por margen en puntos">`;
+  s += `<g class="grid">${Array.from({ length: Math.round(maxM * 100) + 1 }, (_, i) => i / 100).map(t => `<line x1="${x(t)}" x2="${x(t)}" y1="${top - 6}" y2="${H - 6}"/><text class="axis" x="${x(t)}" y="${top - 12}" text-anchor="middle">${(t * 100).toFixed(0)} pts</text>`).join('')}</g>`;
+  list.forEach((d, i) => {
+    const y = top + i * row + row / 2;
+    s += `<g data-tip="${d.id}" style="cursor:pointer" tabindex="0" onclick="location.hash='${d.id}'">
+      <rect x="0" y="${y - row / 2}" width="${W}" height="${row}" fill="transparent"/>
+      <text class="lab" x="${left - 12}" y="${y + 4}" text-anchor="end">${esc(d.name)}</text>
+      <line x1="${x(0)}" x2="${x(d.r24.m)}" y1="${y}" y2="${y}" stroke="${pc(d.r24.w)}" stroke-width="2"/>
+      <circle cx="${x(0)}" cy="${y}" r="5" fill="var(--surface)" stroke="${pc(d.r24.ru)}" stroke-width="2"/>
+      <circle cx="${x(d.r24.m)}" cy="${y}" r="6" fill="${pc(d.r24.w)}" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${x(d.r24.m) + 12}" y="${y + 4}" class="num">${nf(d.r24.mv)} votos</text></g>`;
+  });
+  return s + '</svg>';
+}
+function scatterChart() {
+  const pts_ = D.filter(d => own(d) != null);
+  const W = 640, H = 400, l = 52, r = 20, t = 16, b = 46;
+  const x = v => l + (v - .1) / (.85 - .1) * (W - l - r), y = v => H - b - (v / .7) * (H - t - b);
+  const rr = p => 3.5 + Math.sqrt(p) / 70;
+  const cM = isDark() ? '#3987e5' : '#2a78d6', cD = isDark() ? '#d95926' : '#eb6834';
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gestión SISMAP frente a ingresos propios, tamaño según población">`;
+  s += `<g class="grid">${[0, .1, .2, .3, .4, .5, .6, .7].map(v => `<line x1="${l}" x2="${W - r}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`).join('')}${[.2, .4, .6, .8].map(v => `<text class="axis" x="${x(v)}" y="${H - b + 18}" text-anchor="middle">${v * 100}%</text>`).join('')}</g>`;
+  s += `<text class="axis" x="${(l + W - r) / 2}" y="${H - 6}" text-anchor="middle">Puntuación SISMAP (gestión) →</text><text class="axis" transform="translate(12 ${(t + H - b) / 2}) rotate(-90)" text-anchor="middle">Ingresos propios / presupuesto 2026 →</text>`;
+  [...pts_].sort((a, b) => b.pop - a.pop).forEach(d => {
+    s += `<circle data-tip="${d.id}" tabindex="0" onclick="location.hash='${d.id}'" cx="${x(d.sismap)}" cy="${y(own(d))}" r="${rr(d.pop)}" fill="${d.type === 'DM' ? cD : cM}" fill-opacity=".78" stroke="var(--surface)" stroke-width="2" style="cursor:pointer"/>`;
+  });
+  ['distrito-nacional', 'cambita-garabitos', 'bayahibe', 'santiago-de-los-caballeros', 'el-limon', 'veron-punta-cana'].forEach(id => {
+    const d = byId[id]; if (!d || own(d) == null) return;
+    const anchorEnd = d.sismap > .7;
+    s += `<text class="lab" x="${x(d.sismap) + (anchorEnd ? -rr(d.pop) - 6 : rr(d.pop) + 6)}" y="${y(own(d)) + 4}" text-anchor="${anchorEnd ? 'end' : 'start'}">${esc(d.name)}</text>`;
+  });
+  return `<div class="legend"><span><i style="background:${cM}"></i>Ayuntamientos</span><span><i style="background:${cD}"></i>Juntas de distrito municipal</span><span>Tamaño = población</span></div>` + s + '</svg>';
+}
+function hemicycle(c) {
+  const n = c.seats, W = 300, H = 160, cx = W / 2, cy = H - 6;
+  const rows = n <= 5 ? 1 : n <= 11 ? 2 : n <= 21 ? 3 : 4;
+  const radii = Array.from({ length: rows }, (_, i) => 60 + i * (80 / Math.max(1, rows - 1 || 1)));
+  const tot = radii.reduce((a, r) => a + r, 0);
+  let counts = radii.map(r => Math.round(n * r / tot)); let diff = n - counts.reduce((a, b) => a + b, 0); counts[counts.length - 1] += diff;
+  const pos = [];
+  radii.forEach((r, i) => { const k = counts[i]; for (let j = 0; j < k; j++) { const a = Math.PI * (k === 1 ? .5 : j / (k - 1)); pos.push({ a, x: cx - r * Math.cos(a), y: cy - r * Math.sin(a) }); } });
+  pos.sort((p, q) => p.a - q.a);
+  const seatList = c.blocs.flatMap(([p, k]) => Array(k).fill(p));
+  const rad = rows === 1 ? 13 : rows === 2 ? 10 : rows === 3 ? 8 : 6.5;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${c.blocs.map(([p, k]) => p + ' ' + k).join(', ')}">${pos.map((p, i) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${rad}" fill="${pc(seatList[i])}" stroke="var(--surface)" stroke-width="2"><title>${esc(seatList[i])}</title></circle>`).join('')}<text x="${cx}" y="${cy - 8}" text-anchor="middle" style="font:800 30px var(--display);font-stretch:112%;fill:var(--text)">${n}</text></svg>`;
+}
+
+/* ---------- Home ---------- */
+const table = { prov: '', type: '', q: '', sort: 'pop', dir: -1 };
+function home() {
+  const muns = D.filter(d => d.type === 'Municipio');
+  const popT = muns.reduce((a, d) => a + d.pop, 0);
+  const budT = D.reduce((a, d) => a + (d.b26 ? d.b26.total : 0), 0);
+  const closest = [...D].sort((a, b) => a.r24.mv - b.r24.mv)[0];
+  app.innerHTML = `
+  <section class="hero"><div class="wrap">
+    <div>
+      <div class="eyebrow">Atlas de gobiernos locales · Piloto</div>
+      <h1>La brújula de los <em>ayuntamientos</em> dominicanos</h1>
+      <p class="lede">Quién gobierna, por cuánto ganó, cómo gestiona y de dónde sale su dinero: ${D.length} ayuntamientos y juntas de distrito en las cinco provincias más pobladas, con datos oficiales verificables.</p>
+      <div class="herostats">
+        <div><div class="v num">${D.length}</div><div class="k">${muns.length} municipios y ${D.length - muns.length} distritos municipales</div></div>
+        <div><div class="v num">${(popT / 1e6).toFixed(2)} M</div><div class="k">habitantes, el ${Math.round(popT / 10760028 * 100)}% del país (Censo 2022)</div></div>
+        <div><div class="v num">${nf(closest.r24.mv)}</div><div class="k">votos decidieron El Limón y Medina en 2024</div></div>
+        <div><div class="v num">RD$${(budT / 1e9).toFixed(1)} mil M</div><div class="k">en presupuestos locales aprobados para 2026</div></div>
+      </div>
+    </div>
+    <div class="atlas-card" id="sec-atlas">
+      <div class="atlas-head"><h2>Atlas de los ${D.length} gobiernos locales</h2>
+        <div class="seg viewseg" id="atlasView" role="group" aria-label="Vista"><button data-v="map">Mapa</button><button data-v="tiles">Casillas</button></div>
+        <div class="seg" id="atlasModes" role="group" aria-label="Colorear el atlas por">${Object.entries(MODES).map(([k, m]) => `<button data-m="${k}" aria-pressed="${k === atlasMode}">${m.label}</button>`).join('')}</div></div>
+      <div class="atlas" id="atlas"></div>
+      <div class="atlas-legend" id="atlasLegend"></div>
+      <div class="atlas-note" id="atlasNote"></div>
+    </div>
+  </div></section>
+
+  <section class="block" id="sec-renidas"><div class="wrap">
+    <div class="bhead"><div><div class="eyebrow">Elecciones 2024</div><h2>Las contiendas más reñidas</h2><p>Margen entre el ganador (círculo lleno) y el segundo lugar (círculo vacío). Cinco gobiernos se decidieron por menos de 225 votos: territorio en juego para 2028.</p></div></div>
+    <div class="grid g2">
+      <div class="card chart">${closestChart()}</div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:12px">Quién ganó, por provincia</div>
+        <div class="grid" style="gap:14px">${PROVS.map(p => {
+          const ds = D.filter(d => d.prov === p); const c = {}; ds.forEach(d => { const h = head(d.r24.w); c[h] = (c[h] || 0) + 1; });
+          const ent = Object.entries(c).sort((a, b) => b[1] - a[1]);
+          return `<div><div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><b>${p}</b><span class="num" style="color:var(--text2)">${ds.length} gobiernos</span></div>
+            <div class="stack">${ent.map(([h, n]) => `<i style="width:${n / ds.length * 100}%;background:${pc(h)}" title="${h} ${n}"></i>`).join('')}</div>
+            <div style="font-size:12.5px;color:var(--text2);margin-top:5px">${ent.map(([h, n]) => `${h} ${n}`).join(' · ')}</div></div>`;
+        }).join('')}</div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="block" id="sec-gestion"><div class="wrap">
+    <div class="bhead"><div><div class="eyebrow">Gestión y finanzas</div><h2>Quienes más recaudan suelen gestionar mejor</h2><p>Cada círculo es un gobierno local: a la derecha, mejor puntuación en el SISMAP; arriba, más dinero propio en su presupuesto 2026. Entre los que puntúan menos de 40%, la mediana de ingresos propios es 3.6%; entre los que superan 60%, 27%. La relación es moderada (r = 0.37) y más fuerte entre ayuntamientos (r = 0.50).</p></div></div>
+    <div class="grid g2">
+      <div class="card chart" style="align-self:start">${scatterChart()}</div>
+      <div class="card" style="align-self:start"><div class="eyebrow" style="margin-bottom:6px">Por provincia · medianas</div><div class="grid" style="gap:0">${PROVS.map(p => {
+        const ds = D.filter(d => d.prov === p); const sm = median(ds.map(d => d.sismap)); const om = median(ds.map(own));
+        return `<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1.2fr;gap:8px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:baseline"><b style="font-stretch:108%">${p}</b><span class="num">SISMAP <b>${pf(sm)}</b></span><span class="num">Propios <b>${pf(om)}</b></span><span class="num" style="text-align:right">${rdm(ds.reduce((a, d) => a + (d.b26 ? d.b26.total : 0), 0))}</span></div>`;
+      }).join('')}</div><p style="font-size:12.5px;color:var(--text2);margin:12px 0 0">Medianas de los gobiernos locales de cada provincia; la última columna es el presupuesto 2026 sumado.</p></div>
+    </div>
+  </div></section>
+
+  <section class="block" id="sec-comparar"><div class="wrap">
+    <div class="bhead"><div><div class="eyebrow">Herramienta</div><h2>Comparar dos gobiernos locales</h2><p>Elija dos y vea sus cifras lado a lado. En verde, el mejor valor de cada fila.</p></div></div>
+    <div class="cmp" id="cmp"></div>
+  </div></section>
+
+  <section class="block" id="sec-tabla"><div class="wrap">
+    <div class="bhead"><div><div class="eyebrow">Explorar</div><h2>Todos los gobiernos locales</h2></div></div>
+    <div class="filters">
+      <label><span class="eyebrow">Buscar</span><input id="tq" type="search" placeholder="Nombre…" value="${esc(table.q)}"></label>
+      <label><span class="eyebrow">Provincia</span><select id="tprov"><option value="">Todas</option>${PROVS.map(p => `<option${table.prov === p ? ' selected' : ''}>${p}</option>`).join('')}</select></label>
+      <label><span class="eyebrow">Tipo</span><select id="ttype"><option value="">Todos</option><option value="Municipio">Municipios</option><option value="DM">Distritos municipales</option></select></label>
+      <span class="count" id="tcount"></span>
+    </div>
+    <div class="tablewrap"><table><thead><tr>
+      <th data-k="name" tabindex="0">Nombre</th><th data-k="prov" tabindex="0">Provincia</th><th data-k="pop" class="r" tabindex="0">Población</th>
+      <th data-k="w" tabindex="0">Ganador 2024</th><th data-k="m" class="r" tabindex="0">Margen</th><th data-k="to" class="r" tabindex="0">Particip.</th>
+      <th data-k="sismap" class="r" tabindex="0">SISMAP</th><th data-k="own" class="r" tabindex="0">Ingresos propios</th><th data-k="pc" class="r" tabindex="0">RD$/hab.</th>
+    </tr></thead><tbody id="trows"></tbody></table></div>
+  </div></section>
+
+  <section class="block"><div class="wrap">
+    <div class="bhead"><div><div class="eyebrow">Interactúe</div><h2>Más formas de explorar</h2></div></div>
+    <div class="tools">
+      <button data-go="atlas"><b>Atlas</b><span>Colorea los 66 gobiernos por ganador, margen, gestión, autonomía o participación.</span></button>
+      <button data-go="renidas"><b>Contiendas reñidas</b><span>Dónde se decidirá 2028, con márgenes en votos.</span></button>
+      <button data-go="comparar"><b>Comparar</b><span>Dos gobiernos locales, cifra por cifra.</span></button>
+      <button onclick="openPalette()"><b>Buscar</b><span>Vaya directo a cualquier ficha con ⌘K o Ctrl+K.</span></button>
+    </div>
+  </div></section>`;
+  document.querySelectorAll('#atlasModes button').forEach(b => b.onclick = () => { atlasMode = b.dataset.m; drawAtlas(); });
+  document.querySelectorAll('#atlasView button').forEach(b => b.onclick = () => { atlasView = b.dataset.v; drawAtlas(); });
+  drawAtlas(); bindTips(document.getElementById('sec-renidas')); bindTips(document.getElementById('sec-gestion'));
+  initCompare(); initTable();
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+}
+
+let cmpA = 'santo-domingo-este', cmpB = 'santiago-de-los-caballeros';
+function initCompare() {
+  const opts = sel => PROVS.map(p => `<optgroup label="${p}">${D.filter(d => d.prov === p).map(d => `<option value="${d.id}"${d.id === sel ? ' selected' : ''}>${esc(d.name)}${d.type === 'DM' ? ' (DM)' : ''}</option>`).join('')}</optgroup>`).join('');
+  const rowsDef = [
+    ['Población 2022', d => d.pop, nf, 0], ['Ganador 2024', d => d.r24.w, x => x, 0], ['Votos válidos del ganador', d => d.r24.wp, pf, 1],
+    ['Margen 2024', d => d.r24.m, pts, 0], ['Participación 2024', d => d.r24.to, pf, 1], ['Escaños del concejo', d => d.council.seats, nf, 0],
+    ['SISMAP', d => d.sismap, pf, 1], ['Presupuesto 2026', d => d.b26 && d.b26.total, rdm, 0], ['Presupuesto por habitante', perCap, v => v == null ? '—' : 'RD$' + nf(v), 1],
+    ['Ingresos propios', own, pf, 1], ['Gastado en 2025', d => d.e25 && d.e25.spent, rdm, 0],
+  ];
+  const draw = () => {
+    const a = byId[cmpA], b = byId[cmpB];
+    const side = (d, o, key) => `<div class="side"><label for="cmp${key}" class="eyebrow">${key === 'A' ? 'Primero' : 'Segundo'}</label><select id="cmp${key}">${opts(d.id)}</select>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="tag" style="color:var(--text2)">${d.type === 'DM' ? 'Distrito municipal' : 'Municipio'}</span><span class="chip"><span class="d" style="background:${pc(d.officerParty)}"></span>${esc(d.officer)}</span></div>
+      <dl>${rowsDef.map(([k, f, fmt, better]) => { const v = f(d), w = f(o); const win = better && v != null && w != null && v > w; return `<dt>${k}</dt><dd class="num${win ? ' win' : ''}">${fmt(v)}</dd>`; }).join('')}</dl>
+      <a href="#${d.id}" style="font-weight:600">Abrir ficha completa →</a></div>`;
+    document.getElementById('cmp').innerHTML = side(a, b, 'A') + side(b, a, 'B');
+    document.getElementById('cmpA').onchange = e => { cmpA = e.target.value; draw(); };
+    document.getElementById('cmpB').onchange = e => { cmpB = e.target.value; draw(); };
+  };
+  draw();
+}
+function initTable() {
+  const v = (d, k) => ({ name: d.name, prov: d.prov, pop: d.pop, w: d.r24.w, m: d.r24.m, to: d.r24.to, sismap: d.sismap, own: own(d), pc: perCap(d) }[k]);
+  const draw = () => {
+    const q = norm(table.q);
+    const list = D.filter(d => (!table.prov || d.prov === table.prov) && (!table.type || d.type === table.type) && (!q || norm(d.name).includes(q)))
+      .sort((a, b) => { const x = v(a, table.sort), y = v(b, table.sort); if (x == null) return 1; if (y == null) return -1; return (typeof x === 'string' ? x.localeCompare(y, 'es') : x - y) * table.dir; });
+    document.querySelectorAll('th[data-k]').forEach(th => th.setAttribute('aria-sort', th.dataset.k === table.sort ? (table.dir > 0 ? 'ascending' : 'descending') : 'none'));
+    document.getElementById('tcount').textContent = list.length + ' de ' + D.length;
+    document.getElementById('trows').innerHTML = list.map(d => `<tr><td><a href="#${d.id}">${esc(d.name)}</a> ${d.type === 'DM' ? '<span style="color:var(--muted);font-size:12px">DM</span>' : ''}</td><td>${d.prov}</td><td class="r num">${nf(d.pop)}</td>
+      <td><span class="chip"><span class="d" style="background:${pc(d.r24.w)}"></span>${esc(d.r24.w)}</span></td><td class="r num">${pts(d.r24.m)}</td><td class="r num">${pf(d.r24.to)}</td>
+      <td class="r num">${pf(d.sismap)}<span class="meter"><i style="width:${d.sismap * 100}%"></i></span></td><td class="r num">${pf(own(d))}</td><td class="r num">${perCap(d) ? nf(perCap(d)) : '—'}</td></tr>`).join('');
+  };
+  document.getElementById('tq').oninput = e => { table.q = e.target.value; draw(); };
+  document.getElementById('tprov').onchange = e => { table.prov = e.target.value; draw(); };
+  const tt = document.getElementById('ttype'); tt.value = table.type; tt.onchange = e => { table.type = e.target.value; draw(); };
+  document.querySelectorAll('th[data-k]').forEach(th => { const f = () => { const k = th.dataset.k; table.dir = table.sort === k ? -table.dir : (['name', 'prov', 'w'].includes(k) ? 1 : -1); table.sort = k; draw(); }; th.onclick = f; th.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); f(); } }; });
+  draw();
+}
+function go(sec) {
+  const doIt = () => { const el = document.getElementById('sec-' + sec); if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); };
+  if (location.hash && location.hash !== '#inicio') { location.hash = 'inicio'; setTimeout(doIt, 60); } else doIt();
+}
+
+
+/* ---------- Metodología y fuentes ---------- */
+const PROVCODE = { 'Distrito Nacional': ['DN', 'DO-01'], 'Santo Domingo': ['SD', 'DO-32'], 'Santiago': ['ST', 'DO-25'], 'San Cristóbal': ['CR', 'DO-21'], 'La Altagracia': ['AL', 'DO-11'] };
+const UPDATED = '18 de noviembre de 2026';
+const SOURCES = [
+  ['JCE', 'Junta Central Electoral', 'Boletines definitivos de alcaldes y directores de 2024 y 2020; libro de resultados de 2016; escaños de regidores y vocales de 2024 (método D’Hondt); resultados por colegio electoral de 2020 y 2024. Los totales por partido de cada contienda suman exactamente los votos válidos del boletín, y los 65 ganadores de 2016 coinciden con el listado oficial de ganadores.', 'https://jce.gob.do/'],
+  ['ONE', 'Oficina Nacional de Estadística', 'X Censo Nacional de Población y Vivienda 2022 y censo 2010 (población), y superficie. Usamos las cifras tal como las publica FEDOMU en la ficha de cada municipio y distrito.', 'https://www.one.gob.do/'],
+  ['ONE / HDX', 'Límites administrativos (COD-AB)', 'Polígonos de municipios y distritos municipales para el mapa, versión válida desde el 29 de junio de 2021, publicada en Humanitarian Data Exchange.', 'https://data.humdata.org/'],
+  ['MAP', 'SISMAP Municipal', 'Índice de gestión municipal del Ministerio de Administración Pública: recursos humanos, planificación, presupuesto, compras, transparencia, control interno y presupuesto participativo. Puntuación y puesto tal como aparecían el 7 de noviembre de 2026.', 'https://www.sismap.gob.do/Municipal/'],
+  ['DIGEPRES', 'Dirección General de Presupuesto', 'Libro de Presupuesto de los Gobiernos Locales 2026 (anexos 1 y 2) y Libro de Ejecución Presupuestaria de los Gobiernos Locales 2025 (anexos 1 a 3).', 'https://www.digepres.gob.do/'],
+  ['FEDOMU', 'Federación Dominicana de Municipios', 'Lista de municipios y distritos municipales, municipio al que pertenece cada distrito, autoridades electas en 2024 y fichas con población y superficie.', 'https://fedomu.org.do/'],
+];
+const DEFS = [
+  ['Ganador', 'La línea de boleta con más votos válidos. Si es una alianza, se nombra por el partido que la encabeza, que no siempre es el partido propio de la persona electa.'],
+  ['Margen', 'Diferencia entre el primero y el segundo, en puntos porcentuales sobre los votos válidos.'],
+  ['Participación', 'Votos emitidos entre inscritos. En 2016 las municipales coincidieron con las presidenciales, por lo que esa participación no es comparable con 2020 y 2024.'],
+  ['Distritos municipales', 'Sus votantes eligen director(a) y vocales, no alcalde. Por eso los resultados de alcalde de un municipio no incluyen a sus distritos.'],
+  ['Presupuesto por habitante', 'Presupuesto aprobado 2026 entre la población de 2022. En los municipios se usa la población sin sus distritos, que tienen presupuesto propio.'],
+  ['Ingresos propios', 'Parte del presupuesto 2026 que el gobierno local recauda por sí mismo (fondo 30), frente a las transferencias del Gobierno central (fondo 20).'],
+  ['Recibido y gastado 2025', 'Lo que realmente entró en 2025 (incluidos saldos del año anterior) y lo que se gastó, según la ejecución que publica DIGEPRES.'],
+  ['Mayoría en el concejo', 'Más de la mitad de los escaños de regidores o vocales, sumados todos los de una misma línea de boleta.'],
+];
+const LIMITS = [
+  'La Victoria y La Caleta eran distritos municipales en 2024 y hoy son municipios (leyes 40-24 y 39-24). Sus datos de 2024 son los de la junta de distrito; elegirán su primer alcalde en 2028.',
+  'Santiago Oeste se creó en 2018, por lo que no tiene resultados de 2016.',
+  'Pedro Brand no registró su presupuesto 2026 en el sistema de DIGEPRES. La Guáyiga no aparece en los anexos de ejecución 2025.',
+  'En Santo Domingo Este, la JCE da 33 escaños y FEDOMU 34. Usamos la cifra de la JCE.',
+  'Los totales por colegio de 2024 quedan entre 0.1% y 0.3% por debajo del cómputo definitivo, porque las boletas observadas se suman después.',
+  'El mapa oficial aún no separa Santiago Oeste, Hatillo, Quita Sueño y Doña Ana de su municipio. En el mapa se listan aparte.',
+  'Las cifras de los distritos municipales no incluyen la población de 2010, porque sus fichas no la publican.',
+];
+function codesHTML() {
+  return `<div class="codes">${PROVS.map(p => { const muns = D.filter(d => d.prov === p && d.type === 'Municipio');
+    return `<div><div class="pv"><span>${esc(p)}</span><code>${PROVCODE[p][0]}</code></div>${muns.map(m => `<a class="r" href="#${m.id}" style="color:inherit;text-decoration:none"><span>${esc(m.name)}</span><code>${abbr(m.name)}</code></a>` + D.filter(k => k.parent === m.name).map(k => `<a class="r dm" href="#${k.id}" style="text-decoration:none"><span>${esc(k.name)}</span><code>${abbr(k.name)}</code></a>`).join('')).join('')}</div>`; }).join('')}</div>`;
+}
+function methodology() {
+  const parties = [...new Set(D.flatMap(d => [d.r24.w, d.r24.ru, d.r20 && d.r20.w, d.r16 && d.r16.w, ...d.council.blocs.map(b => b[0])].filter(Boolean).map(head)))].sort((a, b) => a.localeCompare(b));
+  app.innerHTML = `
+  <section class="phero" style="padding-bottom:30px"><div class="wrap">
+    <div class="crumbs"><button onclick="location.hash='inicio'">Atlas</button> / Metodología y fuentes</div>
+    <div class="ptitle" style="grid-template-columns:1fr"><div><span class="tag" style="color:var(--accent)">Cómo trabajamos</span>
+      <h1 style="margin-top:12px">Metodología y fuentes</h1>
+      <p style="color:var(--night-muted);font-size:17px;max-width:62ch;margin:14px 0 0">Cada cifra de este sitio sale de una fuente oficial que cualquiera puede consultar. Aquí explicamos de dónde viene, cómo la calculamos y qué falta. Última actualización: ${UPDATED}.</p>
+      <div class="toc">${[['fuentes', 'Fuentes'], ['definiciones', 'Definiciones'], ['limites', 'Limitaciones'], ['personas', 'Personas y aspirantes'], ['neutralidad', 'Neutralidad'], ['codigos', 'Códigos y colores']].map(([k, t]) => `<a href="#metodologia" data-m="${k}">${t}</a>`).join('')}</div>
+    </div></div>
+  </div></section>
+  <div class="wrap mpage">
+    <section class="block" id="m-fuentes"><div class="bhead"><div><div class="eyebrow">De dónde vienen los datos</div><h2>Fuentes</h2></div></div>
+      <div class="srcs">${SOURCES.map(([a, n, t, u]) => `<div class="src"><div><b>${a}</b><div class="who">${n}</div></div><p>${t} <a href="${u}" target="_blank" rel="noopener">${u.replace(/^https:\/\/(www\.)?/, '').replace(/\/$/, '')}</a></p></div>`).join('')}</div>
+      <p class="muted" style="margin-top:16px">Los datos se extraen de los documentos oficiales (PDF y hojas de cálculo) y se comprueban contra sus propios totales antes de publicarse.</p></section>
+    <section class="block" id="m-definiciones"><div class="bhead"><div><div class="eyebrow">Qué significa cada cifra</div><h2>Definiciones</h2></div></div>
+      <table class="deftbl">${DEFS.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table></section>
+    <section class="block" id="m-limites"><div class="bhead"><div><div class="eyebrow">Lo que todavía no cuadra</div><h2>Limitaciones conocidas</h2></div></div>
+      <ul>${LIMITS.map(l => `<li>${l}</li>`).join('')}</ul></section>
+    <section class="block" id="m-personas"><div class="bhead"><div><div class="eyebrow">Rumbo a 2028</div><h2>Personas y aspirantes</h2></div></div>
+      <p>Cada ficha muestra quién ocupa hoy el cargo y, cuando los haya, quiénes aspiran a él en 2028. Solo incluimos a una persona cuando ella o su partido lo anuncian públicamente y podemos enlazar la fuente. No recogemos rumores ni menciones en encuestas.</p>
+      <p style="margin-bottom:6px">Cada aspirante pasa por estas etapas:</p>
+      <div class="status"><span>Aspirante declarado</span>→<span>Precandidato inscrito</span>→<span>Candidato</span>→<span>Electo</span><span style="margin-left:8px">o bien: Retirado</span></div>
+      <p class="muted">Precandidato inscrito significa inscrito para las primarias de su partido. Candidato significa que ganó la primaria o que su partido lo presentó formalmente.</p></section>
+    <section class="block" id="m-neutralidad"><div class="bhead"><div><div class="eyebrow">Sin bando</div><h2>Neutralidad</h2></div></div>
+      <ul><li>El sitio no apoya a ningún partido, candidato ni aspirante.</li><li>Todos los partidos y aspirantes reciben el mismo tratamiento: los mismos campos, las mismas fuentes y el orden por votos o alfabético, nunca editorial.</li><li>No publicamos pronósticos sin encuestas y un método publicado.</li><li>Si encuentra un error, lo corregimos y lo anotamos en esta página.</li></ul></section>
+    <section class="block" id="m-codigos"><div class="bhead"><div><div class="eyebrow">Para leer el mapa</div><h2>Códigos y colores</h2><p>Las provincias usan los antiguos códigos de dos letras de ISO 3166-2 (Santo Domingo, creada después, no tenía uno). Las abreviaturas de municipios y distritos son propias del sitio.</p></div></div>
+      ${codesHTML()}
+      <h3>Colores de los partidos</h3><p class="muted" style="margin-top:0">Cada línea de boleta toma el color del partido que la encabeza.</p>
+      <div class="pills">${parties.map(p => `<span><i style="background:${pc(p)}"></i><code>${esc(p)}</code></span>`).join('')}</div></section>
+  </div>`;
+  document.querySelectorAll('.toc a').forEach(a => a.onclick = e => { e.preventDefault(); document.getElementById('m-' + a.dataset.m).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  bindTips(app);
+}
+
+/* ---------- Ficha ---------- */
+function profile(d) {
+  const same = D.filter(x => x.type === d.type);
+  const growth = d.pop10 ? d.pop22 / d.pop10 - 1 : null;
+  const dens = d.area ? d.pop22 / d.area : null;
+  const c = d.council, b = d.b26, e = d.e25;
+  const kids = D.filter(x => x.parent === d.name), par = D.find(x => x.name === d.parent);
+  const isMayor = d.race === 'Alcalde';
+  const smed = median(same.map(x => x.sismap)), omed = median(same.map(own)), pcmed = median(same.map(perCap));
+  const tie = c.blocs.length > 1 && c.blocs[0][1] === c.blocs[1][1];
+  const maj = !tie && c.blocs[0][1] > c.seats / 2;
+  const bench = (v, med, max, fmt) => v == null ? '' : `<div class="bench"><div class="track"></div><div class="md" style="left:${med / max * 100}%"></div><div class="mk" style="left:${Math.min(v / max, 1) * 100}%"></div><div class="lbl" style="left:${med / max * 100}%">Mediana ${d.type === 'DM' ? 'distritos' : 'municipios'} ${fmt(med)}</div></div>`;
+  const year = (y, r) => r ? `<div class="yearrow"><div class="y">${y}</div><div class="hbar"><div class="ln"><span class="chip" style="justify-self:start"><span class="d" style="background:${pc(r.w)}"></span>${esc(r.w)}</span><div class="bk"><i style="width:${r.wp * 100}%;background:${pc(r.w)}"></i></div><span class="num" style="text-align:right;font-weight:650">${pf(r.wp)}</span></div></div><div class="meta num">Margen ${pts(r.m)}<br>Particip. ${pf(r.to)}</div></div>`
+    : `<div class="yearrow"><div class="y">${y}</div><div style="color:var(--text2);font-size:14px">Sin contienda: el distrito se creó en 2018.</div><div></div></div>`;
+  app.innerHTML = `
+  <section class="phero"><div class="wrap">
+    <div class="crumbs"><button onclick="location.hash='inicio'">Atlas</button> / ${esc(d.prov)}${par ? ` / <button onclick="location.hash='${par.id}'">${esc(par.name)}</button>` : ''}</div>
+    <div class="ptitle">
+      <div><span class="tag" style="color:var(--accent)">${d.type === 'DM' ? 'Distrito municipal' : 'Municipio'}</span>
+        <h1 style="margin-top:12px">${esc(d.name)}</h1>
+        <div class="who"><span>${isMayor ? 'Alcalde(sa)' : 'Director(a)'} 2024–2028</span><b>${esc(d.officer)}</b><span class="chip" style="background:var(--night2);border-color:var(--night-line);color:var(--night-text)"><span class="d" style="background:${pc(d.officerParty)}"></span>${esc(d.officerParty)}</span></div>
+      </div>
+      <div><div class="eyebrow" style="color:var(--night-muted);margin-bottom:8px">${GSD.has(d.id) || GSD.has(par && par.id) ? 'Ubicación · Gran Santo Domingo' : 'Ubicación · ' + esc(d.prov)}</div><div class="minimap mapwrap" id="minimap">${mapSVG({ which: GSD.has(d.id) || (par && GSD.has(par.id)) ? 'inset' : 'main', here: d.id, par: NOPOLY.includes(d.id) && par ? par.id : null, color: x => pc(x.r24.w), zoomProv: GSD.has(d.id) || (par && GSD.has(par.id)) ? null : d.prov })}</div>${NOPOLY.includes(d.id) ? `<div style="font-size:12px;color:var(--night-muted);margin-top:6px;max-width:330px">Sin polígono oficial propio; se marca el municipio que lo contiene.</div>` : ''}</div>
+    </div>
+    <div class="pstats">
+      <div><div class="v num">${nf(d.pop22)}</div><div class="k">Habitantes, Censo 2022${d.pop22x && d.pop22x !== d.pop22 ? ` (${nf(d.pop22x)} sin sus distritos)` : ''}</div></div>
+      <div><div class="v num">${growth == null ? '—' : (growth > 0 ? '+' : '') + pf(growth)}</div><div class="k">${growth == null ? 'Crecimiento: sin dato 2010' : 'Crecimiento desde 2010'}</div></div>
+      <div><div class="v num">${dens ? nf(dens) : '—'}</div><div class="k">${d.area ? 'hab./km² en ' + nf(d.area) + ' km²' : 'Superficie no publicada'}</div></div>
+      <div><div class="v num">${pf(d.sismap)}</div><div class="k">SISMAP, puesto ${d.sismapRank}</div></div>
+      <div><div class="v num">${perCap(d) ? 'RD$' + nf(perCap(d)) : '—'}</div><div class="k">Presupuesto 2026 por habitante</div></div>
+    </div>
+  </div></section>
+  <div class="ptabs"><div class="wrap">${['Elecciones', 'Personas', 'Concejo', 'Gestión', 'Finanzas'].concat(kids.length ? ['Distritos'] : []).map(t => `<button data-sec="${norm(t)}">${t}</button>`).join('')}</div></div>
+  <div class="wrap">
+    ${d.note ? `<div class="note">${esc(d.note)}</div>` : ''}
+    <section class="block" id="p-elecciones" style="padding-top:28px">
+      <div class="bhead"><div><div class="eyebrow">Elecciones · JCE, boletines definitivos</div><h2>${isMayor ? 'La alcaldía' : 'La dirección del distrito'}, 2016–2024</h2></div></div>
+      <div class="grid g2">
+        <div class="card"><div class="eyebrow" style="margin-bottom:6px">Ganador por elección</div>${year(2024, d.r24)}${year(2020, d.r20)}${year(2016, d.r16)}
+          <p style="font-size:12.5px;color:var(--text2);margin:10px 0 0">La línea de boleta ganadora puede ser una alianza distinta en cada elección. La participación de 2016 coincidió con la presidencial.</p></div>
+        <div class="card"><div class="eyebrow" style="margin-bottom:14px">2024, cara a cara</div>
+          <div class="hbar">${[[d.r24.w, d.r24.wp], [d.r24.ru, d.r24.rp]].map(([p, v]) => `<div class="ln"><span class="chip" style="justify-self:start"><span class="d" style="background:${pc(p)}"></span>${esc(p)}</span><div class="bk"><i style="width:${v * 100}%;background:${pc(p)}"></i></div><span class="num" style="text-align:right;font-weight:650">${pf(v)}</span></div>`).join('')}</div>
+          <div class="kpi num" style="margin-top:22px">${nf(d.r24.mv)}</div><div class="kpi-sub">votos de diferencia (${pts(d.r24.m)}) entre ${nf(d.r24.ins)} inscritos. Participación ${pf(d.r24.to)}.</div></div>
+      </div>
+    </section>
+    <section class="block" id="p-personas">
+      <div class="bhead"><div><div class="eyebrow">Quién gobierna y quién aspira</div><h2>Personas</h2></div></div>
+      <div class="grid g2">
+        <div class="card"><div class="eyebrow">En el cargo · 2024–2028</div>
+          <div style="font:800 24px/1.15 var(--display);font-stretch:110%;margin-top:10px">${esc(d.officer)}</div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="color:var(--text2)">${isMayor ? 'Alcalde(sa)' : 'Director(a) de la junta de distrito'}</span><span class="chip"><span class="d" style="background:${pc(d.officerParty)}"></span>${esc(d.officerParty)}</span></div>
+          <p style="font-size:13px;color:var(--text2);margin:14px 0 0">Electo(a) en febrero de 2024 por ${esc(d.r24.w)}, con ${pf(d.r24.wp)} de los votos válidos.${['la-victoria', 'la-caleta'].includes(d.id) ? ' Hoy es municipio: en 2028 elegirá su primer alcalde.' : ''}</p></div>
+        <div class="card"><div class="eyebrow">${['la-victoria', 'la-caleta'].includes(d.id) || isMayor ? 'Aspirantes a la alcaldía' : 'Aspirantes a la dirección'} · 2028</div>
+          ${(ASP[d.id] || []).length ? (ASP[d.id]).slice().sort((a, b) => a.name.localeCompare(b.name)).map(a => `<div class="asp"><div><b>${esc(a.name)}</b> <span class="chip" style="margin-left:6px"><span class="d" style="background:${pc(a.party)}"></span>${esc(a.party)}</span></div><span class="st">${esc(a.status)}</span><a class="src" href="${esc(a.src)}" target="_blank" rel="noopener">Fuente · ${esc(a.date)}</a></div>`).join('')
+            : `<p style="margin:12px 0 0">Aún no hay aspirantes confirmados.</p><p style="font-size:13px;color:var(--text2);margin:8px 0 0">Los añadimos cuando la persona o su partido lo anuncian públicamente, siempre con enlace a la fuente. Las primarias son en octubre de 2027. <a href="#metodologia">Cómo lo hacemos</a>.</p>`}</div>
+      </div>
+    </section>
+    <section class="block" id="p-concejo">
+      <div class="bhead"><div><div class="eyebrow">Escaños 2024 · JCE</div><h2>${c.body === 'Regidores' ? 'Concejo de regidores' : 'Junta de vocales'}</h2></div></div>
+      <div class="grid g2">
+        <div class="card chart" style="display:grid;place-items:center">${hemicycle(c)}</div>
+        <div class="card"><div class="legend" style="display:grid;gap:10px;font-size:15px">${c.blocs.map(([p, k]) => `<span style="display:flex;justify-content:space-between"><span><i style="background:${pc(p)}"></i>${esc(p)}</span><b class="num">${k}</b></span>`).join('')}</div>
+          <p style="margin:14px 0 0;color:var(--text2)">${tie ? 'Empate entre los bloques mayores: ninguno controla el concejo por sí solo.' : maj ? `<b style="color:var(--text)">${esc(c.blocs[0][0])}</b> tiene mayoría absoluta: ${c.blocs[0][1]} de ${c.seats} escaños.` : `Ningún bloque tiene mayoría. El mayor, ${esc(c.blocs[0][0])}, suma ${c.blocs[0][1]} de ${c.seats}.`} ${head(c.blocs[0][0]) !== head(d.r24.w) && !tie ? `El ${isMayor ? 'alcalde' : 'director'} llegó por ${esc(d.r24.w)}, otra línea de boleta.` : ''}</p></div>
+      </div>
+    </section>
+    <section class="block" id="p-gestion">
+      <div class="bhead"><div><div class="eyebrow">SISMAP Municipal · MAP</div><h2>Gestión</h2></div></div>
+      <div class="card"><div class="kpi num">${pf(d.sismap)}</div><div class="kpi-sub">Puesto ${d.sismapRank} entre ${/233/.test(d.sismapRank) ? 'juntas de distrito municipal' : 'ayuntamientos'}. Mide recursos humanos, planificación, presupuesto, compras, transparencia, control interno y presupuesto participativo.</div>${bench(d.sismap, smed, 1, pf)}</div>
+    </section>
+    <section class="block" id="p-finanzas">
+      <div class="bhead"><div><div class="eyebrow">DIGEPRES · presupuesto 2026 y ejecución 2025</div><h2>Finanzas</h2></div></div>
+      ${b ? `<div class="grid g2">
+        <div class="card"><div class="eyebrow">Presupuesto aprobado 2026</div><div class="kpi num" style="margin-top:8px">${rdm(b.total)}</div><div class="kpi-sub">RD$${nf(perCap(d))} por habitante</div>${bench(perCap(d), pcmed, Math.max(...same.map(perCap).filter(Boolean)), v => 'RD$' + nf(v))}
+          <div style="margin-top:28px"><div class="stack" style="height:16px">${[[b.ley, 'var(--seq3)'], [b.own, 'var(--accent)'], [b.total - b.ley - b.own, 'var(--muted)']].filter(([v]) => v > 0).map(([v, cl]) => `<i style="width:${v / b.total * 100}%;background:${cl}"></i>`).join('')}</div>
+          <div class="legend" style="margin-top:10px"><span><i style="background:var(--seq3)"></i>Transferencias de ley ${pf(b.ley / b.total)}</span><span><i style="background:var(--accent)"></i>Recaudación propia ${pf(b.own / b.total)}</span>${b.total - b.ley - b.own > 0 ? `<span><i style="background:var(--muted)"></i>Otras fuentes ${pf((b.total - b.ley - b.own) / b.total)}</span>` : ''}</div></div></div>
+        <div class="card"><div class="eyebrow">Autonomía fiscal</div><div class="kpi num" style="margin-top:8px">${pf(own(d))}</div><div class="kpi-sub">del presupuesto 2026 lo recauda el propio gobierno local</div>${bench(own(d), omed, .7, pf)}
+          ${e ? `<dl class="dl" style="margin-top:34px"><dt>Recibido en 2025 (incluye saldos)</dt><dd class="num">${rdm(e.rec)}</dd><dt>Gastado en 2025</dt><dd class="num">${rdm(e.spent)}</dd><dt>Ingresos propios cobrados en 2025</dt><dd class="num">${rdm(e.own)} · ${pf(e.own / e.rec)}</dd></dl>` : '<p style="color:var(--text2);margin-top:30px">Sin datos de ejecución 2025.</p>'}</div>
+      </div>` : `<div class="card"><p style="margin:0">No registró su presupuesto 2026 en el CIFE.</p>${e ? `<dl class="dl"><dt>Recibido en 2025</dt><dd class="num">${rdm(e.rec)}</dd><dt>Gastado en 2025</dt><dd class="num">${rdm(e.spent)}</dd><dt>Ingresos propios cobrados en 2025</dt><dd class="num">${rdm(e.own)} · ${pf(e.own / e.rec)}</dd></dl>` : ''}</div>`}
+    </section>
+    ${kids.length ? `<section class="block" id="p-distritos"><div class="bhead"><div><div class="eyebrow">Dentro del municipio</div><h2>Sus distritos municipales</h2></div></div>
+      <div class="grid g5">${kids.map(k => `<a class="card pcard" href="#${k.id}" data-tip="${k.id}"><h3>${esc(k.name)}</h3><div class="row"><span>Población</span><b class="num">${nf(k.pop)}</b></div><div class="row"><span>Ganador 2024</span><b>${esc(head(k.r24.w))}</b></div><div class="row"><span>SISMAP</span><b class="num">${pf(k.sismap)}</b></div></a>`).join('')}</div></section>` : ''}
+  </div>`;
+  document.querySelectorAll('.ptabs button').forEach(bt => bt.onclick = () => document.getElementById('p-' + bt.dataset.sec).scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  bindTips(app);
+  document.querySelectorAll('#minimap [data-go]').forEach(el => el.addEventListener('click', () => { hideTip(); location.hash = el.dataset.go; }));
+}
+
+/* ---------- Paleta ⌘K ---------- */
+function openPalette() {
+  const bg = document.createElement('div'); bg.className = 'palette-bg';
+  bg.innerHTML = `<div class="palette" role="dialog" aria-label="Buscar gobierno local"><input id="pq" placeholder="Escriba un municipio o distrito…" aria-label="Buscar"><ul id="pl"></ul><div class="hint">↑ ↓ para moverse · Enter para abrir · Esc para cerrar</div></div>`;
+  document.body.appendChild(bg);
+  const inp = bg.querySelector('#pq'), ul = bg.querySelector('#pl'); let hi = 0, hits = [];
+  const close = () => bg.remove();
+  const draw = () => {
+    const q = norm(inp.value.trim());
+    hits = (q ? D.filter(d => norm(d.name).includes(q) || norm(d.prov).includes(q)) : [...D].sort((a, b) => b.pop - a.pop)).slice(0, 9);
+    hi = Math.min(hi, Math.max(0, hits.length - 1));
+    ul.innerHTML = hits.map((d, i) => `<li><button class="${i === hi ? 'on' : ''}" data-id="${d.id}"><span class="d" style="width:10px;height:10px;border-radius:3px;background:${pc(d.r24.w)}"></span>${esc(d.name)}<span class="m">${d.type === 'DM' ? 'DM · ' : ''}${esc(d.prov)}</span></button></li>`).join('') || '<li style="padding:12px;color:var(--muted)">Sin resultados</li>';
+    ul.querySelectorAll('button').forEach(b => b.onclick = () => { location.hash = b.dataset.id; close(); });
+  };
+  inp.oninput = () => { hi = 0; draw(); };
+  inp.onkeydown = e => {
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hi = (hi + (e.key === 'ArrowDown' ? 1 : -1) + hits.length) % hits.length; draw(); }
+    if (e.key === 'Enter' && hits[hi]) { location.hash = hits[hi].id; close(); }
+  };
+  bg.onclick = e => { if (e.target === bg) close(); };
+  draw(); inp.focus();
+}
+document.getElementById('openPal').onclick = openPalette;
+addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); if (!document.querySelector('.palette-bg')) openPalette(); } });
+document.querySelectorAll('nav [data-go], footer [data-go]').forEach(b => b.onclick = () => go(b.dataset.go));
+document.getElementById('theme').onclick = () => { document.documentElement.dataset.theme = isDark() ? 'light' : 'dark'; try { localStorage.setItem('nm-theme', document.documentElement.dataset.theme); } catch (e) {} route(true); };
+try { const t = localStorage.getItem('nm-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+
+/* ---------- Rutas ---------- */
+function route(keepScroll) {
+  hideTip();
+  const id = decodeURIComponent(location.hash.slice(1)), d = byId[id];
+  if (d) { profile(d); document.title = d.name + ' · Navegador Municipal RD'; }
+  else if (id === 'metodologia') { methodology(); document.title = 'Metodología y fuentes · Navegador Municipal RD'; }
+  else { home(); document.title = 'Navegador Municipal RD'; }
+  if (keepScroll !== true) scrollTo(0, 0);
+}
+addEventListener('hashchange', () => route());
+route();
+</script>
+</body>
+</html>
